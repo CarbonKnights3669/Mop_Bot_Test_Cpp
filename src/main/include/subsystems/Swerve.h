@@ -16,15 +16,15 @@ public:
         // robot orient the velocity
         velocity *= polar<double>(1, -heading);
         // find fastest module speed
-        fastest = constants::max_speed_meters_per_second;
+        fastest = constants::max_m_per_sec;
         for (Module& module : modules){
             module_speed = abs(module.getVelocity(velocity, turn_rate));
             if (module_speed > fastest)
                 fastest = module_speed;
         }
         // move current velocity toward target
-        target_velocity *= constants::max_speed_meters_per_second / fastest;
-        turn_rate *= constants::max_speed_meters_per_second / fastest;
+        target_velocity *= constants::max_m_per_sec / fastest;
+        turn_rate *= constants::max_m_per_sec / fastest;
         velocity_error = target_velocity-current_velocity;
         turn_rate_error = turn_rate - current_turn_rate;
         if (abs(velocity_error) > constants::slew_rate) {

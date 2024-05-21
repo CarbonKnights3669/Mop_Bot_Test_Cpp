@@ -36,12 +36,12 @@ void Robot::AutonomousPeriodic() {
 void Robot::TeleopInit() {}
 void Robot::TeleopPeriodic(){
 	double dB = 0.03;
-	complex<double> v = complex<double>(-controller.GetLeftY(), -controller.GetLeftX());
-	double tR = -controller.GetRightX();
+	complex<double> v = complex<double>(controller.GetRawAxis(0), controller.GetRawAxis(1));
+	double tR = controller.GetRawAxis(2);
 	// apply smooth deadband
 	complex<double> velocity = (abs(v)>dB) ? v*(1 - dB/abs(v))/(1-dB) : 0;
 	double turn_rate = (abs(tR)>dB) ? tR*(1 - dB/abs(tR))/(1-dB) : 0;
-	swerve.set(velocity*constants::max_speed_meters_per_second, turn_rate*constants::max_speed_meters_per_second);
+	swerve.set(velocity*constants::max_m_per_sec, turn_rate*constants::max_m_per_sec);
 }
 
 void Robot::DisabledInit() {}

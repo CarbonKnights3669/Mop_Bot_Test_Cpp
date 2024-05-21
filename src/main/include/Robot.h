@@ -1,7 +1,6 @@
 #pragma once
 
 #include <frc/TimedRobot.h>
-#include <frc/XboxController.h>
 #include <frc/Joystick.h>
 #include <frc/Timer.h>
 #include <frc/Filesystem.h>
@@ -15,7 +14,7 @@ using namespace std;
 
 unsigned int i = 0; // trajectory sample index
 
-frc::XboxController controller{0};
+frc::Joystick controller{0};
 
 frc::Timer autonomousTimer;
 

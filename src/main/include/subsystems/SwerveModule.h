@@ -29,8 +29,8 @@ public:
 		slot0Configs.kP = 5; // An error of 1 rotation per second results in 5 amps output
 		slot0Configs.kI = 0.1; // An error of 1 rotation per second increases output by 0.1 amps every second
 		slot0Configs.kD = 0.001; // A change of 1000 rotation per second squared results in 1 amp output
-		configs.TorqueCurrent.PeakForwardTorqueCurrent = 30;
-		configs.TorqueCurrent.PeakReverseTorqueCurrent = -30;
+		configs.TorqueCurrent.PeakForwardTorqueCurrent = 25;
+		configs.TorqueCurrent.PeakReverseTorqueCurrent = -25;
         m_drive->GetConfigurator().Apply(configs, 50_ms);
         m_drive->GetPosition().SetUpdateFrequency(200_Hz);
         encoder->GetAbsolutePosition().SetUpdateFrequency(200_Hz);
