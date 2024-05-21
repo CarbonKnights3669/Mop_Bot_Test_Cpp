@@ -24,7 +24,7 @@ public:
         }
         // move current velocity toward target
         target_velocity *= constants::max_speed_meters_per_second / fastest;
-        turn_rate /= fastest;
+        turn_rate *= constants::max_speed_meters_per_second / fastest;
         velocity_error = target_velocity-current_velocity;
         turn_rate_error = turn_rate - current_turn_rate;
         if (abs(velocity_error) > constants::slew_rate) {
