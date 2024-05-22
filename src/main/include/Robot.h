@@ -21,7 +21,7 @@ frc::Timer autonomousTimer;
 
 class Robot : public frc::TimedRobot{
 public:
-	Robot() : frc::TimedRobot(5_ms) {}
+	Robot() : frc::TimedRobot(10_ms) {}
 	vector<trajectoryMaker::Sample> trajectory;
 
 	void RobotInit() override;

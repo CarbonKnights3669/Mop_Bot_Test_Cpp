@@ -41,7 +41,7 @@ void Robot::TeleopPeriodic(){
 	// apply smooth deadband
 	complex<double> velocity = (abs(v)>dB) ? v*(1 - dB/abs(v))/(1-dB) : 0;
 	double turn_rate = (abs(tR)>dB) ? tR*(1 - dB/abs(tR))/(1-dB) : 0;
-	swerve.set(velocity*constants::max_m_per_sec, turn_rate*constants::max_m_per_sec);
+	swerve.set(velocity*constants::max_m_per_sec*controller.GetRawAxis(4), turn_rate*constants::max_m_per_sec*controller.GetRawAxis(4));
 }
 
 void Robot::DisabledInit() {}
