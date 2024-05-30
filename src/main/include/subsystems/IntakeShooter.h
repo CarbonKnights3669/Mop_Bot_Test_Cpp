@@ -5,7 +5,7 @@
 #pragma once
 #include <rev/CANSparkMax.h>
 #include <frc/DigitalInput.h>
-#include <angleMath.h>
+#include <utils/angleMath.h>
 #include <ctre/phoenix6/TalonFX.hpp>
 #include <frc/DutyCycleEncoder.h>
 #include <string>
@@ -77,7 +77,7 @@ public:
 	double GetAngle() {
 		return -e_abs_angle.GetDistance();
 	}
- 	void init() {
+ 	void Init() {
 		m_intake.RestoreFactoryDefaults();
         m_intake.SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
 		m_intake.SetInverted(true);

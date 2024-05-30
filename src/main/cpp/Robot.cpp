@@ -5,43 +5,27 @@
 //test
 
 #include "Robot.h"
-#include "math.h"
 
 using namespace std;
 
 void Robot::RobotInit()
 {
-	intakeShooter.init();
-	swerve.init();
-	trajectory = trajectoryMaker::MakeTrajectory(frc::filesystem::GetDeployDirectory() + "/test.traj");
+	intakeShooter.Init();
+	swerve.Init();
 }
 void Robot::RobotPeriodic() {}
 
 void Robot::AutonomousInit() {
-	autonomousTimer.Restart();
-	i = 0;
-	swerve.resetPos();
+	swerve.AutonomousInit();
+	swerve.SetTrajectory(trajectory);
 }
 void Robot::AutonomousPeriodic() {
-	while (autonomousTimer.HasElapsed(trajectory[i].timestamp) && i < trajectory.size()) {
-		i++;
-	}
-	if (i == trajectory.size()) {
-		swerve.set(complex<double>(0,0), 0);
-	} else {
-		swerve.SetPose(trajectory[i]);
-	}
+	swerve.FollowTrajectory();
 }
 
 void Robot::TeleopInit() {}
 void Robot::TeleopPeriodic(){
-	double dB = 0.03;
-	complex<double> v = complex<double>(controller.GetRawAxis(0), controller.GetRawAxis(1));
-	double tR = controller.GetRawAxis(2);
-	// apply smooth deadband
-	complex<double> velocity = (abs(v)>dB) ? v*(1 - dB/abs(v))/(1-dB) : 0;
-	double turn_rate = (abs(tR)>dB) ? tR*(1 - dB/abs(tR))/(1-dB) : 0;
-	swerve.set(velocity*constants::max_m_per_sec*controller.GetRawAxis(4), turn_rate*constants::max_m_per_sec*controller.GetRawAxis(4));
+	swerve.SetAcceleration(-controller.GetRawAxis(1), -controller.GetRawAxis(0), -controller.GetRawAxis(4));
 }
 
 void Robot::DisabledInit() {}

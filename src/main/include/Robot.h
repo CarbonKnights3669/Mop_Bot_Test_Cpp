@@ -4,6 +4,8 @@
 #include <frc/Joystick.h>
 #include <frc/Timer.h>
 #include <frc/Filesystem.h>
+
+#include <fstream>
 #include <string.h>
 #include "cameraserver/CameraServer.h"
 
@@ -12,17 +14,17 @@
 #include "subsystems/Limelight.h"
 using namespace std;
 
-unsigned int i = 0; // trajectory sample index
-
-frc::Joystick controller{0};
-
-frc::Timer autonomousTimer;
-
 
 class Robot : public frc::TimedRobot{
 public:
-	Robot() : frc::TimedRobot(10_ms) {}
-	vector<trajectoryMaker::Sample> trajectory;
+	Robot() : frc::TimedRobot(constants::cycle_time) {
+		vector<SwerveModule> modules;
+		modules.push_back(SwerveModule{1,  1, 1});
+		modules.push_back(SwerveModule{2, -1, 1});
+		modules.push_back(SwerveModule{3, -1,-1});
+		modules.push_back(SwerveModule{4,  1,-1});
+		swerve.AddModules(modules);
+	}
 
 	void RobotInit() override;
 	void RobotPeriodic() override;
@@ -43,5 +45,7 @@ public:
 	void SimulationPeriodic() override;
 
 private:
-	
+	Trajectory trajectory{frc::filesystem::GetDeployDirectory() + "/test.traj"};
+	Swerve swerve;
+	frc::Joystick controller{0};
 };
