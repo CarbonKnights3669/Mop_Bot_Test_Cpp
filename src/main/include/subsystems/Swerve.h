@@ -38,8 +38,8 @@ public:
             velocity += module.GetVelocity();
             angular_velocity += module.GetAngularVelocity();
         }
-        velocity *= 0.25;
-        angular_velocity *= 0.25;
+        velocity *= 0.25/constants::motor_turns_per_m.value();
+        angular_velocity *= 0.25/constants::motor_turns_per_m.value();
         // frc::SmartDashboard::PutNumber("x vel", velocity.real());
         // frc::SmartDashboard::PutNumber("y vel", velocity.imag());
         // frc::SmartDashboard::PutNumber("angular vel", angular_velocity);

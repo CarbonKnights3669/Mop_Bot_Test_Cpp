@@ -63,28 +63,48 @@ public:
 
     void SetAcceleration(complex<double> robot_accel, double angular_accel, complex<double> robot_velocity, double angular_velocity){
         angle = encoder->GetAbsolutePosition().GetValue();
-        //complex<double> last_velocity = FindModuleVector(robot_velocity, angular_velocity);
-        robot_velocity += robot_accel*constants::max_m_per_sec_per_cycle;
-        angular_velocity += angular_accel*constants::max_m_per_sec_per_cycle;
-        complex<double> velocity = FindModuleVector(robot_velocity, angular_velocity);
+        complex<double> last_velocity = FindModuleVector(robot_velocity, angular_velocity);
         complex<double> accel = FindModuleVector(robot_accel, angular_accel);
-        complex<double> wheel_unit_vector = polar<double>(1, angle.value());
-        double wheel_accel = accel.real()*wheel_unit_vector.real() + accel.imag()*wheel_unit_vector.imag();
-        // todo: switch to CTRE motors
-        error = arg(velocity) - angle.value();
-        am::wrap(error);
-        if (abs(accel) < 0.003) {
-            error = 0;
-        }
-        if (abs(error) > (M_PI/2)){
-            error += M_PI;
+        if (abs(last_velocity) > 0.003*constants::max_m_per_sec) {
+            robot_velocity += robot_accel*constants::max_m_per_sec_per_cycle;
+            angular_velocity += angular_accel*constants::max_m_per_sec_per_cycle;
+            complex<double> velocity = FindModuleVector(robot_velocity, angular_velocity);
+            complex<double> wheel_unit_vector = polar<double>(1, angle.value());
+            double wheel_accel = accel.real()*wheel_unit_vector.real() + accel.imag()*wheel_unit_vector.imag();
+            error = arg(velocity) - angle.value();
+            double angle_change = arg(velocity) - arg(last_velocity);
             am::wrap(error);
+            am::wrap(angle_change);
+            if (abs(angle_change) > M_PI/2) {
+                angle_change += M_PI;
+                am::wrap(angle_change);
+            }
+            if (abs(error) > M_PI/2){
+                error += M_PI;
+                am::wrap(error);
+            }
+            double steering_rate = angle_change*6.4/M_PI*constants::cycle_time.value() + error*50;
+            m_drive->SetControl(torque_ctrl.WithOutput(wheel_accel*constants::max_current).WithDeadband(1_A));
+            auto friction_torque = (steering_rate > 0) ? 3_A : -3_A;
+            m_steering->SetControl(velocity_ctrl.WithVelocity(steering_rate*1_tps).WithFeedForward(friction_torque));
+        } else if (abs(accel) > 0.003) {
+            complex<double> wheel_unit_vector = polar<double>(1, angle.value());
+            double wheel_accel = accel.real()*wheel_unit_vector.real() + accel.imag()*wheel_unit_vector.imag();
+            error = arg(accel) - angle.value();
+            am::wrap(error);
+            if (abs(error) > M_PI/2){
+                error += M_PI;
+                am::wrap(error);
+            }
+            double steering_rate = error*50;
+            m_drive->SetControl(torque_ctrl.WithOutput(wheel_accel*constants::max_current).WithDeadband(1_A));
+            auto friction_torque = (steering_rate > 0) ? 3_A : -3_A;
+            m_steering->SetControl(velocity_ctrl.WithVelocity(steering_rate*1_tps).WithFeedForward(friction_torque));
+        } else {
+            
         }
-        m_steering->Set(error/M_PI);
-        /* set torque/current */
-        m_drive->SetControl(torque_ctrl.WithOutput(wheel_accel*constants::max_current).WithDeadband(1_A));
-        frc::SmartDashboard::PutNumber("x" + to_string(modID), velocity.real());
-        frc::SmartDashboard::PutNumber("y" + to_string(modID), velocity.imag());
+        // frc::SmartDashboard::PutNumber("x" + to_string(modID), velocity.real());
+        // frc::SmartDashboard::PutNumber("y" + to_string(modID), velocity.imag());
     }
 
     complex<double> FindModuleVector(complex<double> robot_accel, complex<double> angular_accel) {
@@ -93,7 +113,7 @@ public:
 
     complex<double> GetVelocity(){
         angle = encoder->GetAbsolutePosition().GetValue();
-        module_velocity = polar<double>((m_drive->GetVelocity().GetValueAsDouble() - m_steering->GetVelocity().GetValueAsDouble()*0.279) / constants::motor_turns_per_m.value(), angle.value());
+        module_velocity = polar<double>(m_drive->GetVelocity().GetValueAsDouble() - m_steering->GetVelocity().GetValueAsDouble()*0.279, angle.value());
         return module_velocity;
     }
 
