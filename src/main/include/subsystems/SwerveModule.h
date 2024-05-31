@@ -61,47 +61,26 @@ public:
         m_drive->SetControl(velocity_ctrl.WithVelocity(wheel_speed*constants::motor_turns_per_m / 1_s).WithFeedForward(friction_torque));
     }
 
-    void SetAcceleration(complex<double> robot_accel, double angular_accel, complex<double> robot_velocity, double angular_velocity){
+    void SetAcceleration(complex<double> accel) {
         angle = encoder->GetAbsolutePosition().GetValue();
-        complex<double> last_velocity = FindModuleVector(robot_velocity, angular_velocity);
-        complex<double> accel = FindModuleVector(robot_accel, angular_accel);
-        if (abs(last_velocity) > 0.003*constants::max_m_per_sec) {
-            robot_velocity += robot_accel*constants::max_m_per_sec_per_cycle;
-            angular_velocity += angular_accel*constants::max_m_per_sec_per_cycle;
-            complex<double> velocity = FindModuleVector(robot_velocity, angular_velocity);
+        velocity = polar<double>((m_drive->GetVelocity().GetValueAsDouble() - m_steering->GetVelocity().GetValueAsDouble()*0.279)/constants::motor_turns_per_m.value(), angle.value());
+        complex<double> next_velocity = velocity + accel*constants::max_m_per_sec_per_cycle;//
+        if (abs(next_velocity) > constants::max_m_per_sec_per_cycle/5) {//
             complex<double> wheel_unit_vector = polar<double>(1, angle.value());
             double wheel_accel = accel.real()*wheel_unit_vector.real() + accel.imag()*wheel_unit_vector.imag();
-            error = arg(velocity) - angle.value();
-            double angle_change = arg(velocity) - arg(last_velocity);
-            am::wrap(error);
+            double angle_change = arg(next_velocity) - angle.value();
             am::wrap(angle_change);
-            if (abs(angle_change) > M_PI/2) {
+            if (abs(angle_change) > M_PI/2){
                 angle_change += M_PI;
                 am::wrap(angle_change);
             }
-            if (abs(error) > M_PI/2){
-                error += M_PI;
-                am::wrap(error);
-            }
-            double steering_rate = angle_change*6.4/M_PI*constants::cycle_time.value() + error*50;
-            m_drive->SetControl(torque_ctrl.WithOutput(wheel_accel*constants::max_current).WithDeadband(1_A));
-            auto friction_torque = (steering_rate > 0) ? 3_A : -3_A;
-            m_steering->SetControl(velocity_ctrl.WithVelocity(steering_rate*1_tps).WithFeedForward(friction_torque));
-        } else if (abs(accel) > 0.003) {
-            complex<double> wheel_unit_vector = polar<double>(1, angle.value());
-            double wheel_accel = accel.real()*wheel_unit_vector.real() + accel.imag()*wheel_unit_vector.imag();
-            error = arg(accel) - angle.value();
-            am::wrap(error);
-            if (abs(error) > M_PI/2){
-                error += M_PI;
-                am::wrap(error);
-            }
-            double steering_rate = error*50;
-            m_drive->SetControl(torque_ctrl.WithOutput(wheel_accel*constants::max_current).WithDeadband(1_A));
+            double steering_rate = angle_change*6.4/M_PI/constants::cycle_time.value();
+            m_drive->SetControl(torque_ctrl.WithOutput(wheel_accel*constants::max_current));
             auto friction_torque = (steering_rate > 0) ? 3_A : -3_A;
             m_steering->SetControl(velocity_ctrl.WithVelocity(steering_rate*1_tps).WithFeedForward(friction_torque));
         } else {
-            
+            m_drive->SetControl(torque_ctrl.WithOutput(0_A));
+            m_steering->SetControl(velocity_ctrl.WithVelocity(0_tps));
         }
         // frc::SmartDashboard::PutNumber("x" + to_string(modID), velocity.real());
         // frc::SmartDashboard::PutNumber("y" + to_string(modID), velocity.imag());
@@ -112,13 +91,11 @@ public:
     }
 
     complex<double> GetVelocity(){
-        angle = encoder->GetAbsolutePosition().GetValue();
-        module_velocity = polar<double>(m_drive->GetVelocity().GetValueAsDouble() - m_steering->GetVelocity().GetValueAsDouble()*0.279, angle.value());
-        return module_velocity;
+        return velocity;
     }
 
     double GetAngularVelocity() {
-        return module_velocity.real()*turn_vector.real() + module_velocity.imag()*turn_vector.imag();
+        return velocity.real()*turn_vector.real() + velocity.imag()*turn_vector.imag();
     }
 
     complex<double> GetPositionChange() {
@@ -143,7 +120,7 @@ private:
 	controls::TorqueCurrentFOC torque_ctrl{0_A};
     int modID;
     complex<double> turn_vector;
-    complex<double> module_velocity;
+    complex<double> velocity;
     units::radian_t angle;
     double error;
     double motor_position_old = 0;

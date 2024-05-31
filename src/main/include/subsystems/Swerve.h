@@ -31,21 +31,12 @@ public:
         frc::SmartDashboard::PutNumber("x accel", accel.real());
         frc::SmartDashboard::PutNumber("y accel", accel.imag());
         frc::SmartDashboard::PutNumber("angular accel", angular_accel);
-        // calculate current velocity
-        complex<double> velocity;
-        double angular_velocity = 0;
-        for (auto& module : modules) {
-            velocity += module.GetVelocity();
-            angular_velocity += module.GetAngularVelocity();
-        }
-        velocity *= 0.25/constants::motor_turns_per_m.value();
-        angular_velocity *= 0.25/constants::motor_turns_per_m.value();
         // frc::SmartDashboard::PutNumber("x vel", velocity.real());
         // frc::SmartDashboard::PutNumber("y vel", velocity.imag());
         // frc::SmartDashboard::PutNumber("angular vel", angular_velocity);
         for (auto& module : modules) {
             // module.SetVelocity(accel, angular_accel);
-            module.SetAcceleration(accel, angular_accel, velocity, angular_velocity);
+            module.SetAcceleration(module.FindModuleVector(accel, angular_accel));
         }
     }
 
