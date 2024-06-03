@@ -10,7 +10,7 @@
 #include <units/current.h>
 
 namespace constants {
-    const units::meters_per_second_squared_t max_acceleration = 7_mps_sq;
+    const units::meters_per_second_squared_t max_acceleration = 4_mps_sq;
     const units::ampere_t max_current = 25_A;
     const units::second_t cycle_time = 5_ms;
     const double max_m_per_sec_per_cycle = max_acceleration.value() * cycle_time.value();    // how quickly to change the swerve velocity

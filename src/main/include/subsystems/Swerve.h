@@ -1,10 +1,11 @@
 #pragma once
 
-#include <AHRS.h>
+#include <ctre/phoenix6/Pigeon2.hpp>
 #include "subsystems/SwerveModule.h"
 #include "utils/Trajectory.h"
 
 using namespace std;
+using namespace ctre::phoenix6;
 
 class Swerve{
 public:
@@ -16,7 +17,7 @@ public:
         accel = (abs(accel)>dB) ? accel*(1 - dB/abs(accel))/(1-dB) : 0;
         angular_accel = (abs(angular_accel)>dB) ? angular_accel*(1 - dB/abs(angular_accel))/(1-dB) : 0;
         // robot orient the acceleration
-        heading = -gyro.GetYaw()*(M_PI/180);
+        heading = gyro.GetYaw().GetValueAsDouble()*M_PI/180;
         accel *= polar<double>(1, -heading);
         // find fastest module speed
         double greatest = 1;
@@ -50,7 +51,7 @@ public:
 
     // drive toward the position setpoint with feedforward and return true when done
     void FollowTrajectory() {
-        heading = -gyro.GetYaw()*(M_PI/180);
+        heading = gyro.GetYaw().GetValueAsDouble()*M_PI/180;
         CalculateOdometry();
         // find the latest sample index
         while (auto_timer.HasElapsed(trajectory->GetSample(sample_index).timestamp) && sample_index < trajectory->GetSampleCount()) {
@@ -102,6 +103,10 @@ public:
         position = new_position;
     }
 
+    void ResetAngle() {
+        gyro.SetYaw(0_deg);
+    }
+
     complex<double> GetPosition() {
         return position;
     }
@@ -124,7 +129,7 @@ private:
         }
     }
 
-    AHRS gyro{frc::SPI::Port::kMXP};
+    hardware::Pigeon2 gyro{1, "CTREdevices"};
     frc::Timer auto_timer;
     vector<SwerveModule> modules;
 
