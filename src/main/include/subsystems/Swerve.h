@@ -90,6 +90,7 @@ public:
         for (auto& module : modules){
             module.init();
         }
+        gyro.GetYaw().SetUpdateFrequency(200_Hz);
     }
 
     void AddModules(vector<SwerveModule> modules) {
