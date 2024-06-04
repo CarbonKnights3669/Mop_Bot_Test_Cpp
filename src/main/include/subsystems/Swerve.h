@@ -6,6 +6,7 @@
 
 using namespace std;
 using namespace ctre::phoenix6;
+using namespace constants;
 
 class Swerve{
 public:
@@ -17,7 +18,7 @@ public:
         accel = (abs(accel)>dB) ? accel*(1 - dB/abs(accel))/(1-dB) : 0;
         angular_accel = (abs(angular_accel)>dB) ? angular_accel*(1 - dB/abs(angular_accel))/(1-dB) : 0;
         // robot orient the acceleration
-        heading = gyro.GetYaw().GetValueAsDouble()*M_PI/180;
+        heading = gyro.GetYaw().GetValueAsDouble()*tau/360;
         accel *= polar<double>(1, -heading);
         // find fastest module speed
         double greatest = 1;
@@ -26,18 +27,17 @@ public:
             if (module_accel > greatest)
                 greatest = module_accel;
         }
+        complex<double> velocity;
+        for (auto& module : modules) {
+            velocity += module.GetPositionChange()/cycle_time.value();
+        }
+        velocity *= 0.25;
+        double angular_velocity = gyro.GetAngularVelocityZDevice().GetValueAsDouble()*tau/360*furthest_module_center_dist.value();
         // limit output so no module goes above 1
         accel /= greatest;
         angular_accel /= greatest;
-        frc::SmartDashboard::PutNumber("x accel", accel.real());
-        frc::SmartDashboard::PutNumber("y accel", accel.imag());
-        frc::SmartDashboard::PutNumber("angular accel", angular_accel);
-        // frc::SmartDashboard::PutNumber("x vel", velocity.real());
-        // frc::SmartDashboard::PutNumber("y vel", velocity.imag());
-        // frc::SmartDashboard::PutNumber("angular vel", angular_velocity);
         for (auto& module : modules) {
-            // module.SetVelocity(accel, angular_accel);
-            module.SetAcceleration(module.FindModuleVector(accel, angular_accel));
+            module.SetAcceleration(accel, angular_accel, velocity, angular_velocity);
         }
     }
 
@@ -90,7 +90,7 @@ public:
         for (auto& module : modules){
             module.init();
         }
-        gyro.GetYaw().SetUpdateFrequency(200_Hz);
+        gyro.GetYaw().SetUpdateFrequency(100_Hz);
     }
 
     void AddModules(vector<SwerveModule> modules) {
@@ -122,11 +122,11 @@ private:
         position += position_change * polar<double>(0.25, heading);
     }
 
-    void SetModuleVelocities(complex<double> acceleration = complex<double>(0,0), double angular_velocity = 0) {
+    void SetModuleVelocities(complex<double> velocity = complex<double>(0,0), double angular_velocity = 0) {
         //robot orient the acceleration
-        acceleration *= polar<double>(1, -heading);
+        velocity *= polar<double>(1, -heading);
         for (auto& module : modules){
-            module.SetVelocity(acceleration, angular_velocity);
+            module.SetVelocity(velocity, angular_velocity);
         }
     }
 
