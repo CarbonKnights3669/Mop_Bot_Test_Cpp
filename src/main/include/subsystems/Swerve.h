@@ -33,6 +33,7 @@ public:
         }
         velocity *= 0.25;
         double angular_velocity = gyro.GetAngularVelocityZDevice().GetValueAsDouble()*tau/360*furthest_module_center_dist.value();
+        frc::SmartDashboard::PutNumber("av", angular_velocity);
         // limit output so no module goes above 1
         accel /= greatest;
         angular_accel /= greatest;

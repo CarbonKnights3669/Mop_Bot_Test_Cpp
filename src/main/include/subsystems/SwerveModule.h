@@ -66,20 +66,28 @@ public:
     }
 
     void SetAcceleration(complex<double> robot_accel, double angular_accel, complex<double> robot_velocity, double angular_velocity) {
-        angle = encoder->GetAbsolutePosition().GetValueAsDouble();
-        complex<double> wheel_unit_vector = polar<double>(1, angle*tau);
+        angle = encoder->GetAbsolutePosition().GetValueAsDouble()*tau;
         complex<double> velocity = FindModuleVector(robot_velocity, angular_velocity);
         complex<double> accel = FindModuleVector(robot_accel, angular_accel);
-        double wheel_accel = accel.real()*cos(angle*tau) + accel.imag()*sin(angle*tau);
+        double wheel_accel = accel.real()*cos(angle) + accel.imag()*sin(angle);
         complex<double> next_velocity = velocity + accel*max_m_per_sec_per_cycle;
+        // if (abs(velocity) > 0.02) {
+        //     double error = arg(next_velocity) - angle;
+        //     am::wrap(error);
+        //     if (abs(error) > tau/4){
+        //         error += tau/2;
+        //         am::wrap(error);
+        //     }
+        //     m_steering->SetControl(torque_ctrl.WithOutput(error*17_A));
+        // }
         if (abs(accel) > 0.0003) {
-            double error = arg(next_velocity)/tau - angle;
-            am::wrapTurns(error);
-            if (abs(error) > 0.25){
-                error += 0.5;
-                am::wrapTurns(error);
+            double error = arg(accel) - angle;
+            am::wrap(error);
+            if (abs(error) > tau/4){
+                error += tau/2;
+                am::wrap(error);
             }
-            m_steering->SetControl(torque_ctrl.WithOutput(error*100_A));
+            m_steering->SetControl(torque_ctrl.WithOutput(error*10_A));
         }
         else {
             m_steering->SetControl(velocity_ctrl.WithVelocity(0_tps));
@@ -92,11 +100,11 @@ public:
     }
 
     complex<double> GetPositionChange() {
-        angle = encoder->GetAbsolutePosition().GetValueAsDouble();
+        angle = encoder->GetAbsolutePosition().GetValueAsDouble()*tau;
         double motor_position = m_drive->GetPosition().GetValueAsDouble();
         double motor_position_change = motor_position - motor_position_old;
         motor_position_old = motor_position;
-        complex<double> position_change = polar<double>(motor_position_change / constants::motor_turns_per_m.value(), angle*tau);
+        complex<double> position_change = polar<double>(motor_position_change / constants::motor_turns_per_m.value(), angle);
         return position_change;
     }
 
@@ -115,7 +123,6 @@ private:
     int modID;
     complex<double> turn_vector;
     double angle;
-    double error;
     double motor_position_old = 0;
 };
 /*
