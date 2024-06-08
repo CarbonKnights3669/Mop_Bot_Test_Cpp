@@ -10,6 +10,10 @@ using namespace constants;
 
 class Swerve{
 public:
+    void SetVelocity(double x_velocity, double y_velocity, double angular_velocity) {
+        
+    }
+
     // drives robot at given speed during teleop
     void SetAcceleration(double x_accel, double y_accel, double angular_accel, double rate_modifier = 1){
         complex<double> accel = complex<double>(x_accel, y_accel);
