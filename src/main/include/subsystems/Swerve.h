@@ -11,38 +11,46 @@ using namespace constants;
 class Swerve{
 public:
     void SetVelocity(double x_velocity, double y_velocity, double angular_velocity) {
-        
-    }
-
-    // drives robot at given speed during teleop
-    void SetAcceleration(double x_accel, double y_accel, double angular_accel, double rate_modifier = 1){
-        complex<double> accel = complex<double>(x_accel, y_accel);
+        complex<double> velocity = complex<double>(x_velocity, y_velocity);
         // apply smooth deadband
         double dB = 0.03;
-        accel = (abs(accel)>dB) ? accel*(1 - dB/abs(accel))/(1-dB) : 0;
-        angular_accel = (abs(angular_accel)>dB) ? angular_accel*(1 - dB/abs(angular_accel))/(1-dB) : 0;
-        // robot orient the acceleration
+        velocity = (abs(velocity)>dB) ? velocity*(1 - dB/abs(velocity))/(1-dB) : 0;
+        angular_velocity = (abs(angular_velocity)>dB) ? angular_velocity*(1 - dB/abs(angular_velocity))/(1-dB) : 0;
+        // scale the velocities to meters per second
+        velocity *= max_m_per_sec;
+        angular_velocity *= max_m_per_sec;
+        // find the robot oriented velocity
         heading = gyro.GetYaw().GetValueAsDouble()*tau/360;
-        accel *= polar<double>(1, -heading);
+        complex<double> robot_velocity = velocity * polar<double>(1, -heading);
         // find fastest module speed
-        double greatest = 1;
+        double fastest = max_m_per_sec;
         for (auto& module : modules){
-            double module_accel = abs(module.FindModuleVector(accel, angular_accel));
-            if (module_accel > greatest)
-                greatest = module_accel;
+            double module_speed = abs(module.FindModuleVector(robot_velocity, angular_velocity));
+            if (module_speed > fastest)
+                fastest = module_speed;
         }
-        complex<double> velocity;
+        // scale velocities
+        velocity *= max_m_per_sec/fastest;
+        angular_velocity *= max_m_per_sec/fastest;
+        double approx_angular_vel = gyro.GetAngularVelocityZDevice().GetValueAsDouble()*tau/360*furthest_module_center_dist.value();
+        // find error between command and current velocities found by weighted average
+        complex<double> vel_error = velocity - slew_vel;
+        double angular_vel_error = angular_velocity - slew_angular_vel;
+        // scale error down to max acceleration to find increment
+        complex<double> vel_increment = vel_error*max_m_per_sec_per_cycle/abs(vel_error);
+        double angular_vel_increment = angular_vel_error*max_m_per_sec_per_cycle/abs(angular_vel_error);
+        // increment velocity
+        if (abs(vel_error) > max_m_per_sec_per_cycle) {
+            slew_vel += vel_increment;
+        } else slew_vel = velocity;
+        if (abs(angular_vel_error) > max_m_per_sec_per_cycle) {
+            slew_angular_vel += angular_vel_increment;
+        } else slew_angular_vel = angular_velocity;
+        // find robot oriented slew velocity
+        complex<double> robot_slew_vel = slew_vel * polar<double>(1, -heading);
+        // drive the modules
         for (auto& module : modules) {
-            velocity += module.GetPositionChange()/cycle_time.value();
-        }
-        velocity *= 0.25;
-        double angular_velocity = gyro.GetAngularVelocityZDevice().GetValueAsDouble()*tau/360*furthest_module_center_dist.value();
-        frc::SmartDashboard::PutNumber("av", angular_velocity);
-        // limit output so no module goes above 1
-        accel /= greatest;
-        angular_accel /= greatest;
-        for (auto& module : modules) {
-            module.SetAcceleration(accel, angular_accel, velocity, angular_velocity);
+            module.SetVelocity(robot_slew_vel, slew_angular_vel);
         }
     }
 
@@ -140,7 +148,8 @@ private:
     vector<SwerveModule> modules;
 
     Trajectory *trajectory;    // trajectory currently being followed in autonomous
-    double current_turn_rate = 0;     // current turn rate of the swerve in teleop
+    complex<double> slew_vel;        // current velocity of the swerve in teleop
+    double slew_angular_vel = 0;     // current turn rate of the swerve in teleop
     double heading;
     int sample_index = 0;
 

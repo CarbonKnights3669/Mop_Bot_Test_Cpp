@@ -35,8 +35,8 @@ public:
 		slot0Configs.kD = 0.001; // A change of 1000 rotation per second squared results in 1 amp output
         slot1Configs.kP = 10; // An error of 1 rotations results in 40 A output
         slot1Configs.kD = 2; // A velocity of 1 rps results in 2 A output
-        configs.TorqueCurrent.PeakForwardTorqueCurrent = 30;
-		configs.TorqueCurrent.PeakReverseTorqueCurrent = -30;
+        configs.TorqueCurrent.PeakForwardTorqueCurrent = max_current.value();
+		configs.TorqueCurrent.PeakReverseTorqueCurrent = -max_current.value();
         m_drive->GetConfigurator().Apply(configs, 50_ms);
         m_steering->GetConfigurator().Apply(configs, 50_ms);
         m_drive->GetPosition().SetUpdateFrequency(100_Hz);
@@ -46,53 +46,25 @@ public:
     }
 
     void SetVelocity(complex<double> robot_velocity, double turn_rate){
-        angle = encoder->GetAbsolutePosition().GetValueAsDouble();
         complex<double> velocity = robot_velocity + turn_vector * turn_rate;
         double wheel_speed = abs(velocity);
-        double error = arg(velocity)/tau - angle;
-        am::wrapTurns(error);
-        if (wheel_speed < 0.003 * max_m_per_sec) {
+        angle = encoder->GetAbsolutePosition().GetValueAsDouble()*tau;
+        double error = arg(velocity) - angle;
+        am::wrap(error);
+        if (wheel_speed < 0.008) {
             error = 0;
         }
-        if (abs(error) > 0.25){
-            error += 0.5;
-            am::wrapTurns(error);
+        if (abs(error) > M_PI/2){
+            error += M_PI;
+            am::wrap(error);
             wheel_speed *= -1;
         }
-        m_steering->Set(error*2);
-        auto friction_torque = (wheel_speed > 0) ? 4.5_A : -4.5_A; // To account for friction, we add this to the arbitrary feed forward
+        m_steering->Set(error/M_PI);
+        // auto friction_torque =  // To account for friction, we add this to the arbitrary feed forward
+        // m_steering->SetControl(torque_ctrl.WithOutput(15_A*error/M_PI*2 + friction_torque));
+        auto friction_torque = 8_A/(1+exp(-wheel_speed*16))-4_A;//(wheel_speed > 0) ? 4_A : (wheel_speed < 0) ? -4_A : 0_A; // To account for friction, we add this to the arbitrary feed forward
         /* Use torque velocity */
         m_drive->SetControl(velocity_ctrl.WithVelocity(wheel_speed*motor_turns_per_m / 1_s).WithFeedForward(friction_torque));
-    }
-
-    void SetAcceleration(complex<double> robot_accel, double angular_accel, complex<double> robot_velocity, double angular_velocity) {
-        angle = encoder->GetAbsolutePosition().GetValueAsDouble()*tau;
-        complex<double> velocity = FindModuleVector(robot_velocity, angular_velocity);
-        complex<double> accel = FindModuleVector(robot_accel, angular_accel);
-        double wheel_accel = accel.real()*cos(angle) + accel.imag()*sin(angle);
-        complex<double> next_velocity = velocity + accel*max_m_per_sec_per_cycle;
-        // if (abs(velocity) > 0.02) {
-        //     double error = arg(next_velocity) - angle;
-        //     am::wrap(error);
-        //     if (abs(error) > tau/4){
-        //         error += tau/2;
-        //         am::wrap(error);
-        //     }
-        //     m_steering->SetControl(torque_ctrl.WithOutput(error*17_A));
-        // }
-        if (abs(accel) > 0.0003) {
-            double error = arg(accel) - angle;
-            am::wrap(error);
-            if (abs(error) > tau/4){
-                error += tau/2;
-                am::wrap(error);
-            }
-            m_steering->SetControl(torque_ctrl.WithOutput(error*10_A));
-        }
-        else {
-            m_steering->SetControl(velocity_ctrl.WithVelocity(0_tps));
-        }
-        m_drive->SetControl(torque_ctrl.WithOutput(wheel_accel*constants::max_current));
     }
 
     complex<double> FindModuleVector(complex<double> robot_accel, complex<double> angular_accel) {
@@ -104,8 +76,13 @@ public:
         double motor_position = m_drive->GetPosition().GetValueAsDouble();
         double motor_position_change = motor_position - motor_position_old;
         motor_position_old = motor_position;
-        complex<double> position_change = polar<double>(motor_position_change / constants::motor_turns_per_m.value(), angle);
+        complex<double> position_change = polar<double>(motor_position_change / motor_turns_per_m.value(), angle);
         return position_change;
+    }
+
+    complex<double> GetVelocity() {
+        angle = encoder->GetAbsolutePosition().GetValueAsDouble()*tau;
+        return polar<double>(m_drive->GetVelocity().GetValueAsDouble()/motor_turns_per_m.value(), angle);
     }
 
     void resetEncoders() {
