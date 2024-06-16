@@ -5,7 +5,7 @@
 #pragma once
 #include <rev/CANSparkMax.h>
 #include <frc/DigitalInput.h>
-#include <utils/angleMath.h>
+#include <utils/mathFunctions.h>
 #include <ctre/phoenix6/TalonFX.hpp>
 #include <frc/DutyCycleEncoder.h>
 #include <string>
@@ -37,12 +37,12 @@ public:
  	void RunAnglePID() {
 		double currentAngle = GetAngle();
 		angleError = angleSetpoint - currentAngle;
-		am::wrapDeg(angleError);
+		mf::wrapDeg(angleError);
 		double output = angleError*P;
 		accumulator += angleError*I;
 		output += accumulator;
 		double angleChange = currentAngle - lastAngle;
-		am::wrapDeg(angleChange);
+		mf::wrapDeg(angleChange);
 		output -= angleChange*D;
 		output += F;
 		if (output > max) {

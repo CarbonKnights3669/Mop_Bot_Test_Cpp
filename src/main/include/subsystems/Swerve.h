@@ -23,22 +23,33 @@ public:
         heading = gyro.GetYaw().GetValueAsDouble()*tau/360;
         complex<double> robot_velocity = velocity * polar<double>(1, -heading);
         // find fastest module speed
-        double fastest = max_m_per_sec;
+        double highest = max_m_per_sec;
         for (auto& module : modules){
             double module_speed = abs(module.FindModuleVector(robot_velocity, angular_velocity));
-            if (module_speed > fastest)
-                fastest = module_speed;
+            if (module_speed > highest)
+                highest = module_speed;
         }
         // scale velocities
-        velocity *= max_m_per_sec/fastest;
-        angular_velocity *= max_m_per_sec/fastest;
-        double approx_angular_vel = gyro.GetAngularVelocityZDevice().GetValueAsDouble()*tau/360*furthest_module_center_dist.value();
-        // find error between command and current velocities found by weighted average
+        velocity *= max_m_per_sec/highest;
+        angular_velocity *= max_m_per_sec/highest;
+        robot_velocity *= max_m_per_sec/highest;
+        // find error between command and current velocities
         complex<double> vel_error = velocity - slew_vel;
         double angular_vel_error = angular_velocity - slew_angular_vel;
-        // scale error down to max acceleration to find increment
-        complex<double> vel_increment = vel_error*max_m_per_sec_per_cycle/abs(vel_error);
-        double angular_vel_increment = angular_vel_error*max_m_per_sec_per_cycle/abs(angular_vel_error);
+        // find robot oriented velocity error
+        complex<double> robot_vel_error = vel_error*polar<double>(1, -heading);
+        // find robot oriented slew velocity
+        complex<double> robot_slew_vel = slew_vel*polar<double>(1, -heading);
+        // find max acceleration overshoot
+        highest = 1;
+        for (auto& module : modules){
+            double module_overshoot = module.GetAccelOvershoot(robot_slew_vel, slew_angular_vel, robot_vel_error, angular_vel_error);
+            if (module_overshoot > highest)
+                highest = module_overshoot;
+        }
+        // find velocity increments
+        complex<double> vel_increment = vel_error/highest;
+        double angular_vel_increment = angular_vel_error/highest;
         // increment velocity
         if (abs(vel_error) > max_m_per_sec_per_cycle) {
             slew_vel += vel_increment;
@@ -46,8 +57,8 @@ public:
         if (abs(angular_vel_error) > max_m_per_sec_per_cycle) {
             slew_angular_vel += angular_vel_increment;
         } else slew_angular_vel = angular_velocity;
-        // find robot oriented slew velocity
-        complex<double> robot_slew_vel = slew_vel * polar<double>(1, -heading);
+        // update the robot oriented slew velocity
+        robot_slew_vel = slew_vel*polar<double>(1, -heading);
         // drive the modules
         for (auto& module : modules) {
             module.SetVelocity(robot_slew_vel, slew_angular_vel);
@@ -75,7 +86,7 @@ public:
             // calculate proporional response
             complex<double> position_error = current_sample.position - position;
             double heading_error = current_sample.heading - heading;
-            am::wrap(heading_error);
+            mf::wrap(heading_error);
             current_sample.velocity += position_P * position_error;
             current_sample.angular_velocity += heading_P * heading_error;
             // drive modules

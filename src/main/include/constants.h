@@ -10,13 +10,21 @@
 #include <units/current.h>
 
 namespace constants {
-    const units::meters_per_second_squared_t max_accel = 3_mps_sq;
-    const units::ampere_t max_current = 25_A;
+    // how often to run the robot program
     const units::second_t cycle_time = 10_ms;
-    const double max_m_per_sec_per_cycle = max_accel.value() * cycle_time.value();    // how quickly to change the swerve velocity
-    const units::turn_t motor_turns_per_wheel_turn = 6.12_tr;
+    // maximum module current
+    const double max_current = 25;
+    // current required to account for friction
+    const double feedforward_current = 4;
+    // maximum acceleration in meters per second squared
+    const double max_accel = 9;
+    // number of amps to achieve 1mps^2 acceleration
+    const double current_to_accel_ratio = 15;
+    // how quickly to change the swerve velocity
+    const double max_m_per_sec_per_cycle = max_accel * cycle_time.value();
+    const double motor_turns_per_wheel_turn = 6.12;
     const units::meter_t wheel_diameter = 3.9_in;
-    const units::turn_t motor_turns_per_m = 1_m / (wheel_diameter * M_PI) * motor_turns_per_wheel_turn;
+    const double motor_turns_per_m = motor_turns_per_wheel_turn / (wheel_diameter.value() * M_PI);
     const units::meter_t furthest_module_center_dist = 0.305_m * sqrt(2);
     const double max_m_per_sec = 5;
 

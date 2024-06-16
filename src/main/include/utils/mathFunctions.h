@@ -1,6 +1,10 @@
 #pragma once
 #include <math.h>
-namespace am{
+#include <complex>
+
+using namespace std;
+
+namespace mf{
     // wrap input to between -pi and pi
     void wrap(double &angle){
         while (angle > M_PI){
@@ -29,5 +33,12 @@ namespace am{
         while (angle < -180){
             angle += 360;
         }
+    }
+
+    // get the projection of a onto b
+    double GetProjectionMagnitude(complex<double> a, complex<double> b) {
+        // make b a unit vector
+        b /= abs(b);
+        return a.real()*b.real() + a.imag()*b.imag();
     }
 }
