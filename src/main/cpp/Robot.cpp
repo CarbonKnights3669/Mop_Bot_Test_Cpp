@@ -25,8 +25,8 @@ void Robot::AutonomousPeriodic() {
 
 void Robot::TeleopInit() {}
 void Robot::TeleopPeriodic(){
-	swerve.SetVelocity(-controller.GetRawAxis(1), -controller.GetRawAxis(0), -controller.GetRawAxis(4));
-	if (controller.GetRawButton(1)) {
+	swerve.SetVelocity(controller.GetRawAxis(0), controller.GetRawAxis(1), controller.GetRawAxis(2));
+	if (controller.GetRawButton(4)) {
 		swerve.ResetAngle();
 	}
 }
