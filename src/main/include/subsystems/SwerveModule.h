@@ -43,11 +43,6 @@ public:
 
     void SetVelocity(complex<double> robot_velocity, double turn_rate){
         complex<double> velocity = robot_velocity + turn_vector * turn_rate;
-        frc::SmartDashboard::PutNumber("setpoint velocity x" + to_string(modID), velocity.real());
-        frc::SmartDashboard::PutNumber("setpoint velocity y" + to_string(modID), velocity.imag());
-        complex<double> current_velocity = GetVelocity();
-        frc::SmartDashboard::PutNumber("current velocity x" + to_string(modID), current_velocity.real());
-        frc::SmartDashboard::PutNumber("current velocity y" + to_string(modID), current_velocity.imag());
         double wheel_speed = abs(velocity);
         angle = encoder->GetAbsolutePosition().GetValueAsDouble()*tau;
         double error = arg(velocity) - angle;
@@ -65,6 +60,12 @@ public:
         auto friction_torque = constants::feedforward_current*2_A/(1+exp(-wheel_speed*16))-feedforward_current*1_A;
         /* Use torque velocity */
         m_drive->SetControl(velocity_ctrl.WithVelocity(wheel_speed*motor_turns_per_m * 1_tps).WithFeedForward(friction_torque));
+        frc::SmartDashboard::PutNumber("setpoint velocity x" + to_string(modID), velocity.real());
+        frc::SmartDashboard::PutNumber("setpoint velocity y" + to_string(modID), velocity.imag());
+        complex<double> current_velocity = GetVelocity();
+        frc::SmartDashboard::PutNumber("current velocity x" + to_string(modID), current_velocity.real());
+        frc::SmartDashboard::PutNumber("current velocity y" + to_string(modID), current_velocity.imag());
+        frc::SmartDashboard::PutNumber("Amps " + to_string(modID), m_drive->GetClosedLoopOutput().GetValueAsDouble());
     }
 
     complex<double> FindModuleVector(complex<double> robot_vector, double angular_rate) {
@@ -97,7 +98,6 @@ public:
     }
 
     complex<double> GetVelocity() {
-        angle = encoder->GetAbsolutePosition().GetValueAsDouble()*tau;
         return polar<double>(m_drive->GetVelocity().GetValueAsDouble()/motor_turns_per_m, angle);
     }
 
