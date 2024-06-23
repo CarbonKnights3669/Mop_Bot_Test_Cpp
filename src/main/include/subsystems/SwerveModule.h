@@ -101,8 +101,6 @@ public:
         return polar<double>(m_drive->GetVelocity().GetValueAsDouble()/motor_turns_per_m, angle);
     }
 
-    complex<double>
-
     void resetEncoders() {
         motor_position_old = 0;
         m_drive->SetPosition(0_tr);
