@@ -59,12 +59,9 @@ public:
         auto friction_torque = constants::feedforward_current*2_A/(1+exp(-wheel_speed*16))-feedforward_current*1_A;
         /* Use torque velocity */
         m_drive->SetControl(velocity_ctrl.WithVelocity(wheel_speed*motor_turns_per_m * 1_tps).WithFeedForward(friction_torque));
-        frc::SmartDashboard::PutNumber("setpoint velocity x" + to_string(modID), velocity.real());
-        frc::SmartDashboard::PutNumber("setpoint velocity y" + to_string(modID), velocity.imag());
-        complex<double> current_velocity = GetVelocity();
-        frc::SmartDashboard::PutNumber("current velocity x" + to_string(modID), current_velocity.real());
-        frc::SmartDashboard::PutNumber("current velocity y" + to_string(modID), current_velocity.imag());
-        frc::SmartDashboard::PutNumber("Amps " + to_string(modID), m_drive->GetClosedLoopOutput().GetValueAsDouble());
+        frc::SmartDashboard::PutNumber("setpoint speed" + to_string(modID), GetSpeed());
+        frc::SmartDashboard::PutNumber("actual speed" + to_string(modID), wheel_speed);
+        frc::SmartDashboard::PutNumber("current in amps" + to_string(modID), abs(m_drive->GetClosedLoopOutput().GetValueAsDouble()));
     }
 
     complex<double> FindModuleVector(complex<double> robot_vector, double angular_rate) {
@@ -96,8 +93,8 @@ public:
         return position_change;
     }
 
-    complex<double> GetVelocity() {
-        return polar<double>(m_drive->GetVelocity().GetValueAsDouble()/motor_turns_per_m, angle);
+    double GetSpeed() {
+        return abs(m_drive->GetVelocity().GetValueAsDouble());
     }
 
     void resetEncoders() {
