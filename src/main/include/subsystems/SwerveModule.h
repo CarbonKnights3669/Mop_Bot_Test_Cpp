@@ -59,8 +59,8 @@ public:
         auto friction_torque = constants::feedforward_current*2_A/(1+exp(-wheel_speed*16))-feedforward_current*1_A;
         /* Use torque velocity */
         m_drive->SetControl(velocity_ctrl.WithVelocity(wheel_speed*motor_turns_per_m * 1_tps).WithFeedForward(friction_torque));
-        frc::SmartDashboard::PutNumber("setpoint speed" + to_string(modID), GetSpeed());
-        frc::SmartDashboard::PutNumber("actual speed" + to_string(modID), wheel_speed);
+        frc::SmartDashboard::PutNumber("setpoint speed" + to_string(modID), abs(wheel_speed*motor_turns_per_m));
+        frc::SmartDashboard::PutNumber("actual speed" + to_string(modID), GetSpeed());
         frc::SmartDashboard::PutNumber("current in amps" + to_string(modID), abs(m_drive->GetClosedLoopOutput().GetValueAsDouble()));
     }
 
