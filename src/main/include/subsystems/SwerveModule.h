@@ -27,7 +27,6 @@ public:
         m_drive->SetNeutralMode(signals::NeutralModeValue::Brake);
         configs::TalonFXConfiguration configs{};
         configs::Slot0Configs& slot0Configs = configs.Slot0;
-        configs::Slot1Configs& slot1Configs = configs.Slot1;
 		/* Torque-based velocity does not require a feed forward, as torque will accelerate the rotor up to the desired velocity by itself */
 		slot0Configs.kP = 5; // An error of 1 rotation per second results in 5 amps output
 		//slot0Configs.kI = 0.1; // An error of 1 rotation per second increases output by 0.1 amps every second
