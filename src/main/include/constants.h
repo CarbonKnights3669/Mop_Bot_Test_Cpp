@@ -26,7 +26,7 @@ namespace constants {
     const units::meter_t wheel_diameter = 3.9_in;
     const double motor_turns_per_m = motor_turns_per_wheel_turn / (wheel_diameter.value() * M_PI);
     const units::meter_t furthest_module_center_dist = 0.305_m * sqrt(2);
-    const double max_m_per_sec = 4.5;
+    const double max_m_per_sec = 5;
 
 
     const double tau = 2*M_PI;
