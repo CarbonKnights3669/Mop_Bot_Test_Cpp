@@ -32,20 +32,22 @@ public:
 		slot0Configs.kP = 5; // An error of 1 rotation per second results in 5 amps output
 		//slot0Configs.kI = 0.1; // An error of 1 rotation per second increases output by 0.1 amps every second
 		slot0Configs.kD = 0.001; // A change of 1000 rotation per second squared results in 1 amp output
-        slot1Configs.kP = 10; // An error of 1 rotations results in 40 A output
-        slot1Configs.kD = 2; // A velocity of 1 rps results in 2 A output
         configs.TorqueCurrent.PeakForwardTorqueCurrent = max_current;
 		configs.TorqueCurrent.PeakReverseTorqueCurrent = -max_current;
         m_drive->GetConfigurator().Apply(configs, 50_ms);
         m_steering->GetConfigurator().Apply(configs, 50_ms);
         m_drive->GetPosition().SetUpdateFrequency(100_Hz);
         m_drive->GetVelocity().SetUpdateFrequency(100_Hz);
-        m_steering->GetVelocity().SetUpdateFrequency(100_Hz);
         encoder->GetAbsolutePosition().SetUpdateFrequency(100_Hz);
     }
 
     void SetVelocity(complex<double> robot_velocity, double turn_rate){
         complex<double> velocity = robot_velocity + turn_vector * turn_rate;
+        frc::SmartDashboard::PutNumber("setpoint velocity x" + to_string(modID), velocity.real());
+        frc::SmartDashboard::PutNumber("setpoint velocity y" + to_string(modID), velocity.imag());
+        complex<double> current_velocity = GetVelocity();
+        frc::SmartDashboard::PutNumber("current velocity x" + to_string(modID), current_velocity.real());
+        frc::SmartDashboard::PutNumber("current velocity y" + to_string(modID), current_velocity.imag());
         double wheel_speed = abs(velocity);
         angle = encoder->GetAbsolutePosition().GetValueAsDouble()*tau;
         double error = arg(velocity) - angle;
@@ -94,6 +96,13 @@ public:
         return position_change;
     }
 
+    complex<double> GetVelocity() {
+        angle = encoder->GetAbsolutePosition().GetValueAsDouble()*tau;
+        return polar<double>(m_drive->GetVelocity().GetValueAsDouble()/motor_turns_per_m, angle);
+    }
+
+    complex<double>
+
     void resetEncoders() {
         motor_position_old = 0;
         m_drive->SetPosition(0_tr);
@@ -103,9 +112,7 @@ private:
     hardware::TalonFX *m_drive;
     hardware::TalonFX *m_steering;
     hardware::CANcoder *encoder;
-	controls::PositionTorqueCurrentFOC position_ctrl = controls::PositionTorqueCurrentFOC{0_tr}.WithSlot(1);
 	controls::VelocityTorqueCurrentFOC velocity_ctrl = controls::VelocityTorqueCurrentFOC{0_tps, 0_tr_per_s_sq, 0_A, 0, false}.WithSlot(0);
-	controls::TorqueCurrentFOC torque_ctrl{0_A};
     int modID;
     complex<double> turn_vector;
     double angle;
