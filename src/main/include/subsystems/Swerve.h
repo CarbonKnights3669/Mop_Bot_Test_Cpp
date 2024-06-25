@@ -49,6 +49,7 @@ public:
         }
         // find velocity increments
         complex<double> vel_increment = vel_error/highest;
+        complex<double> robot_vel_increment = robot_vel_error/highest;
         double angular_vel_increment = angular_vel_error/highest;
         // increment velocity
         if (abs(vel_error) > max_m_per_sec_per_cycle) {
@@ -59,9 +60,12 @@ public:
         } else slew_angular_vel = angular_velocity;
         // update the robot oriented slew velocity
         robot_slew_vel = slew_vel*polar<double>(1, -heading);
+        // find acceleration feedforeward
+        complex<double> robot_accel = robot_vel_error*2.0;
+        double angular_accel = angular_vel_error*2;
         // drive the modules
         for (auto& module : modules) {
-            module.SetVelocity(robot_slew_vel, slew_angular_vel);
+            module.SetVelocity(robot_slew_vel, slew_angular_vel, robot_accel, angular_accel);
         }
     }
 

@@ -16,7 +16,9 @@ namespace constants {
     const double max_current = 25;
     // current required to account for friction
     const double feedforward_current = 4;
-    // maximum acceleration in meters per second squared
+    // current headroom
+    const double current_headroom = 4;
+    // maximum accelerations in meters per second squared
     const double max_accel = 9;
     // number of amps to achieve 1mps^2 acceleration
     const double current_to_accel_ratio = 10;

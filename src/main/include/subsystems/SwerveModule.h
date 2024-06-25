@@ -26,11 +26,9 @@ public:
     void init() {
         m_drive->SetNeutralMode(signals::NeutralModeValue::Brake);
         configs::TalonFXConfiguration configs{};
-        configs::Slot0Configs& slot0Configs = configs.Slot0;
 		/* Torque-based velocity does not require a feed forward, as torque will accelerate the rotor up to the desired velocity by itself */
-		slot0Configs.kP = 5; // An error of 1 rotation per second results in 5 amps output
-		//slot0Configs.kI = 0.1; // An error of 1 rotation per second increases output by 0.1 amps every second
-		slot0Configs.kD = 0.001; // A change of 1000 rotation per second squared results in 1 amp output
+		configs.Slot0.kP = 5; // An error of 1 rotation per second results in 5 amps output
+		configs.Slot0.kS = feedforward_current;
         configs.TorqueCurrent.PeakForwardTorqueCurrent = max_current;
 		configs.TorqueCurrent.PeakReverseTorqueCurrent = -max_current;
         m_drive->GetConfigurator().Apply(configs, 50_ms);
@@ -40,8 +38,9 @@ public:
         encoder->GetAbsolutePosition().SetUpdateFrequency(100_Hz);
     }
 
-    void SetVelocity(complex<double> robot_velocity, double turn_rate){
-        complex<double> velocity = robot_velocity + turn_vector * turn_rate;
+    void SetVelocity(complex<double> robot_velocity, double angular_vel, complex<double> robot_accel = complex<double>(0,0), double angular_accel = 0){
+        complex<double> velocity = FindModuleVector(robot_velocity, angular_vel);
+        complex<double> accel_current = FindModuleVector(robot_accel, angular_accel)*current_to_accel_ratio;
         double wheel_speed = abs(velocity);
         angle = encoder->GetAbsolutePosition().GetValueAsDouble()*tau;
         double error = arg(velocity) - angle;
@@ -55,10 +54,9 @@ public:
             wheel_speed *= -1;
         }
         m_steering->Set(error/M_PI);
-        // To account for friction, we add this to the arbitrary feed forward
-        auto friction_torque = constants::feedforward_current*2_A/(1+exp(-wheel_speed*16))-feedforward_current*1_A;
         /* Use torque velocity */
-        m_drive->SetControl(velocity_ctrl.WithVelocity(wheel_speed*motor_turns_per_m * 1_tps).WithFeedForward(friction_torque));
+        double wheel_accel_current = mf::GetProjectionMagnitude(accel_current, polar<double>(1, angle));
+        m_drive->SetControl(velocity_ctrl.WithVelocity(wheel_speed*motor_turns_per_m * 1_tps).WithFeedForward(wheel_accel_current*1_A));
         frc::SmartDashboard::PutNumber("setpoint speed" + to_string(modID), abs(wheel_speed*motor_turns_per_m));
         frc::SmartDashboard::PutNumber("actual speed" + to_string(modID), GetSpeed());
         frc::SmartDashboard::PutNumber("current in amps" + to_string(modID), abs(m_drive->GetClosedLoopOutput().GetValueAsDouble()));
@@ -77,7 +75,7 @@ public:
             accel_overshoot = abs(vel_increment) / max_m_per_sec_per_cycle;
         }
         double wheel_current = mf::GetProjectionMagnitude(vel_increment/cycle_time.value()*current_to_accel_ratio, velocity) + feedforward_current;
-        double wheel_accel_overshoot = abs(wheel_current) / max_current;
+        double wheel_accel_overshoot = abs(wheel_current) / (max_current-current_headroom);
         if (wheel_accel_overshoot > accel_overshoot) {
             accel_overshoot = wheel_accel_overshoot;
         }
