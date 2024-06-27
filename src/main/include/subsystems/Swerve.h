@@ -69,6 +69,10 @@ public:
         }
     }
 
+    void SetAcceleration(double x_accel, double y_accel, double angular_accel) {
+        
+    }
+
     // sets the trajectory to follow
     void SetTrajectory(Trajectory &trajectory) {
         this->trajectory = &trajectory;
